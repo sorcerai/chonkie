@@ -190,6 +190,7 @@ Chonkie provides several chunkers to help you split your text efficiently for RA
 | `SlumberChunker`   | `slumber`   | Splits text using an LLM to find semantically meaningful chunks. Also known as _"AgenticChunker"_.                         |
 | `TableChunker`     | `table`     | Chunks markdown tables by rows or character count.                                                                          |
 | `TeraflopAIChunker`| `teraflopai`| Splits text using the TeraflopAI Segmentation API for domain-specific segmentation.                                        |
+| `DecisionChunker`  | `decision`  | Picks boundaries and scores chunk relevance with a typed decision model (Perplexity Decider via OpenRouter). Offsets are exact. |
 
 More on these methods and the approaches taken inside the [docs](https://docs.chonkie.ai)
 
