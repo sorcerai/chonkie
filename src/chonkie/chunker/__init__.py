@@ -2,6 +2,7 @@
 
 from .base import BaseChunker
 from .code import CodeChunker
+from .decision import DecisionChunker
 from .fast import FastChunker
 from .late import LateChunker
 from .neural import NeuralChunker
@@ -26,4 +27,5 @@ __all__ = [
     "NeuralChunker",
     "FastChunker",
     "TeraflopAIChunker",
+    "DecisionChunker",
 ]

@@ -4,6 +4,7 @@ from .chef import BaseChef, LiteParse, MarkdownChef, MistralOCR, TableChef, Text
 from .chunker import (
     BaseChunker,
     CodeChunker,
+    DecisionChunker,
     FastChunker,
     LateChunker,
     NeuralChunker,
@@ -30,7 +31,16 @@ from .embeddings import (
     VoyageAIEmbeddings,
 )
 from .fetcher import BaseFetcher, FileFetcher
-from .genie import AzureOpenAIGenie, BaseGenie, CerebrasGenie, GeminiGenie, GroqGenie, OpenAIGenie
+from .genie import (
+    AzureOpenAIGenie,
+    BaseGenie,
+    CerebrasGenie,
+    DecisionError,
+    DecisionGenie,
+    GeminiGenie,
+    GroqGenie,
+    OpenAIGenie,
+)
 from .handshakes import (
     BaseHandshake,
     ChromaHandshake,
@@ -84,6 +94,7 @@ __all__ = (
     # chunker
     "BaseChunker",
     "CodeChunker",
+    "DecisionChunker",
     "FastChunker",
     "LateChunker",
     "NeuralChunker",
@@ -116,6 +127,8 @@ __all__ = (
     "AzureOpenAIGenie",
     "BaseGenie",
     "CerebrasGenie",
+    "DecisionError",
+    "DecisionGenie",
     "GeminiGenie",
     "GroqGenie",
     "OpenAIGenie",
