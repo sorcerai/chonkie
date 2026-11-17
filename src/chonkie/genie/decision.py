@@ -102,7 +102,6 @@ class DecisionGenie:
         payload = json.dumps(
             {"state": state, "questions": questions, "model": self.model},
             sort_keys=True,
-            ensure_ascii=False,
             separators=(",", ":"),
         )
         return hashlib.sha256(payload.encode("utf-8")).hexdigest()
@@ -135,7 +134,12 @@ class DecisionGenie:
         if self.cache_get is not None:
             cached = self.cache_get(key)
             if cached is not None:
-                return dict(cached)
+                try:
+                    return self._validate(
+                        {n: {"noul": cached[n]} for n in questions}, list(questions)
+                    )
+                except (KeyError, TypeError, ValueError, DecisionError):
+                    pass  # unusable cache entry: treat as a miss and refetch
 
         if not self.api_key:
             raise DecisionError(
@@ -176,8 +180,10 @@ class DecisionGenie:
                 headers={"Authorization": f"Bearer {self.api_key}"},
                 timeout=self.timeout,
             )
-        except httpx.TransportError as e:
+        except httpx.HTTPError as e:
             raise _RetryableError(f"transport error: {e}") from e
+        except UnicodeEncodeError as e:
+            raise DecisionError(f"request is not encodable: {e}") from e
         finally:
             if self._client is None:
                 client.close()
@@ -189,10 +195,17 @@ class DecisionGenie:
             raise DecisionError(f"HTTP {status}")
         return self._parse(response, names)
 
-    @staticmethod
-    def _parse(response: httpx.Response, names: list[str]) -> dict[str, float]:
+    @classmethod
+    def _parse(cls, response: httpx.Response, names: list[str]) -> dict[str, float]:
         try:
-            answers = response.json()["answers"]
+            return cls._validate(response.json()["answers"], names)
+        except (ValueError, KeyError, TypeError, AttributeError) as e:
+            raise DecisionError(f"malformed decision answer: {e}") from e
+
+    @staticmethod
+    def _validate(answers: Any, names: list[str]) -> dict[str, float]:
+        """Return name -> float for every requested name, or raise DecisionError."""
+        try:
             out: dict[str, float] = {}
             for name in names:
                 value = answers[name]["noul"]

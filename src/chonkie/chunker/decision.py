@@ -277,7 +277,9 @@ class DecisionChunker(BaseChunker):
                 total += chunks[b].token_count
                 b += 1
             state: Any = [{"id": k, "text": chunks[k].text} for k in range(a, b)]
-            questions = {f"relevant_{k}": self.relevance_instructions for k in range(a, b)}
+            questions = {
+                f"relevant_{k}": f"Chunk {k}: {self.relevance_instructions}" for k in range(a, b)
+            }
             answers = self.genie.decide(state, questions)
             for k in range(a, b):
                 scores[k] = answers[f"relevant_{k}"]

@@ -580,3 +580,56 @@ def test_live_openrouter_decider() -> None:
     assert all(c.metadata["decider"] == "ok" for c in chunks), chunks[0].metadata
     rel: Optional[float] = chunks[-1].metadata["relevance"]
     assert rel is not None and 0.0 <= rel <= 1.0
+
+
+# ---- review fixes ----------------------------------------------------------------
+
+
+def test_relevance_questions_name_their_own_chunk() -> None:
+    fake = FakeDecider()
+    DecisionChunker(
+        genie=make_genie(fake),
+        relevance_instructions="Is this about words?",
+        boundary_threshold=0.0,
+        min_chunk_tokens=0,
+        chunk_size=10_000,
+    ).chunk(paragraphs(5))
+    rel = [r for r in fake.requests if any(k.startswith("relevant_") for k in r["questions"])]
+    assert rel
+    for r in rel:
+        ids = {item["id"] for item in r["state"]}
+        for name, q in r["questions"].items():
+            k = int(name.rsplit("_", 1)[1])
+            assert k in ids
+            assert q["instructions"] == f"Chunk {k}: Is this about words?"
+
+
+@pytest.mark.parametrize(
+    "bad", [{}, {"other": 0.5}, {"q": "high"}, {"q": 1.5}, {"q": True}, {"q": None}]
+)
+def test_unusable_cache_entry_is_a_miss(bad: dict) -> None:
+    fake = FakeDecider(lambda n: 0.25)
+    store: dict[str, Any] = {}
+    genie = make_genie(fake, cache_get=store.get, cache_set=store.__setitem__)
+    store[genie.cache_key("s", {"q": {"type": "noul", "instructions": "x"}})] = bad
+    assert genie.decide("s", {"q": "x"}) == {"q": 0.25}
+    assert len(fake.requests) == 1
+
+
+def test_bad_cache_never_crashes_chunk() -> None:
+    fake = FakeDecider()
+    chunker = DecisionChunker(genie=make_genie(fake, cache_get=lambda k: {}))
+    assert chunker.chunk(paragraphs(3))[0].metadata["decider"] == "ok"
+
+
+def test_http_errors_and_lone_surrogates_fall_back() -> None:
+    def handler(request: httpx.Request) -> httpx.Response:
+        raise httpx.DecodingError("bad gzip")
+
+    chunker = DecisionChunker(genie=make_genie(handler, max_attempts=1))
+    assert chunker.chunk(FALLBACK_TEXT)[0].metadata["decider"] == "fallback"
+
+    text = "alpha \ud800 text.\n\nbeta text."
+    chunks = DecisionChunker(genie=make_genie(FakeDecider())).chunk(text)
+    assert_invariants(text, chunks)
+    assert chunks[0].metadata["decider"] in ("ok", "fallback")
