@@ -248,7 +248,9 @@ def test_relevance_metadata() -> None:
     assert [c.metadata["relevance"] for c in chunks] == [0.1, 0.2, 0.3, 0.4, 0.5, 0.6]
     assert all(c.metadata["decider"] == "ok" for c in chunks)
     rel_reqs = [r for r in fake.requests if any(k.startswith("relevant_") for k in r["questions"])]
-    assert rel_reqs[0]["questions"]["relevant_0"]["instructions"] == "Is this about words?"
+    assert (
+        rel_reqs[0]["questions"]["relevant_0"]["instructions"] == "Chunk 0: Is this about words?"
+    )
     assert rel_reqs[0]["state"][0]["text"] == chunks[0].text
 
 
